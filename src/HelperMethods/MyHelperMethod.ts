@@ -126,7 +126,6 @@ export const RemoveStringFromDepartmentName = (departmentName: string) => {
     return departmentName.replace(REMOVE_THIS_STRING, "");
 }
 
-
 /**
  * Check in the JobPostingTemplates library to see if there is a Document Set for the given department.
  * @param departmentName Name of the document set we are looking for.  Expecting " - Job Files" to be present.  It will be removed.
@@ -139,3 +138,11 @@ export const CheckForTemplateDocumentSet = async (departmentName: string): Promi
 
     return output;
 };
+
+/**
+ * Get a list of characters that cannot be in Folder or Document titles.  These characters are determined by SharePoint and Adobe Sign.
+ * '"', '*', ':', '<', '>', '?', '/', '\\', '|' are invalid according to SharePoint. 
+ * '#' is invalid because it causes Adobe Sign to crash.
+ * @returns An array of invalid characters.
+ */
+export const GET_INVALID_CHARACTERS: Array<string> = ['"', '*', ':', '<', '>', '?', '/', '\\', '|', '#'];
