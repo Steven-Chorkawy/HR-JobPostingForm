@@ -2,5 +2,5 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
   "port": 4321,
   "https": true,
-  "initialPage": "https://{tenantDomain}/_layouts/workbench.aspx"
+  "initialPage": "https://claringtonnet.sharepoint.com/sites/Careers/_layouts/workbench.aspx?loadspfx=true&debugManifestsFile=https://localhost:4321/temp/manifests.js"
 }
