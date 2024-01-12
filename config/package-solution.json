@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "hr-job-posting-form-client-side-solution",
+    "id": "c3fd3e5e-d881-47df-93de-b4efca59ead8",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.18.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "hr-job-posting-form description"
+      },
+      "longDescription": {
+        "default": "hr-job-posting-form description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "hr-job-posting-form Feature",
+        "description": "The feature that activates elements of the hr-job-posting-form solution.",
+        "id": "1dd61596-36d6-4eb7-83aa-782e9f712a0f",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/hr-job-posting-form.sppkg"
+  }
+}

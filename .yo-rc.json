@@ -1,0 +1,21 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "16.18.1",
+    "sdksVersions": {
+      "@microsoft/microsoft-graph-client": "3.0.2",
+      "@microsoft/teams-js": "2.12.0"
+    },
+    "version": "1.18.2",
+    "libraryName": "hr-job-posting-form",
+    "libraryId": "c3fd3e5e-d881-47df-93de-b4efca59ead8",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "hr-job-posting-form",
+    "solutionShortDescription": "hr-job-posting-form description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}
