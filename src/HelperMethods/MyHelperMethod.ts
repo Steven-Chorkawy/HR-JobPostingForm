@@ -27,6 +27,14 @@ export const getSP = (): SPFI => {
     return _sp;
 }
 
+/**
+ * 01/05/2024 - Ticket: https://clarington.freshservice.com/a/tickets/35141
+ * When this project was created the template documents were in the root of the templates library (https://claringtonnet.sharepoint.com/sites/Careers/JobPostingTemplates).
+ * HR staff have created a new folder (Master Templates - Employee Requisition & Job Posting) within the templates library and have moved the template files into the new folder.
+ */
+export const MASTER_TEMPLATE_FOLDER_NAME = "Master Templates - Employee Requisition & Job Posting";
+
+
 // Check if the current user has edit access to a given library.
 export const DoesUserHaveAccessToLibrary = async (libraryName: string): Promise<boolean> => await _sp.web.lists.getByTitle(libraryName).currentUserHasPermissions(PermissionKind.AddListItems);
 
@@ -81,5 +89,53 @@ export const RemoveDuplicateDivisions = (departments: IDepartments[]): string[] 
     departments.map(d => { divisionList.push(...d.divisions as any); });
     //This filters out duplicate divisions.
     output = divisionList.filter((element: any, index: number) => { return divisionList.indexOf(element) === index; });
+    return output;
+};
+
+/**
+ * Get a list of all the template documents found.
+ * @returns A list of template files found.
+ */
+export const GetTemplateDocuments = async (): Promise<any> => {
+    let templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates)
+        .select('Title', 'RootFolder/ServerRelativeUrl')
+        .expand('RootFolder')();
+
+    /**
+     * 01/05/2024 - Ticket: https://clarington.freshservice.com/a/tickets/35141
+     * When this project was created the template documents were in the root of the templates library (https://claringtonnet.sharepoint.com/sites/Careers/JobPostingTemplates).
+     * HR staff have created a new folder (Master Templates - Employee Requisition & Job Posting) within the templates library and have moved the template files into the new folder.
+     */
+    const TEMPLATE_FOLDER = `${templateLibrary.RootFolder.ServerRelativeUrl}/${MASTER_TEMPLATE_FOLDER_NAME}`;
+    try {
+        let templateFolder: any = await _sp.web.getFolderByServerRelativePath(TEMPLATE_FOLDER).expand("Folders, Files")();
+        debugger;
+        let output = templateFolder.Files
+        debugger;
+        return output;
+    } catch (error) {
+        console.error(error);
+        console.log('Failed to locate template files!!!');
+        return [];
+    }
+}
+
+export const RemoveStringFromDepartmentName = (departmentName: string) => {
+    // This string is present in the name of the libraries.  Removing it is needed in some situations.
+    const REMOVE_THIS_STRING = " - Job Files";
+    return departmentName.replace(REMOVE_THIS_STRING, "");
+}
+
+
+/**
+ * Check in the JobPostingTemplates library to see if there is a Document Set for the given department.
+ * @param departmentName Name of the document set we are looking for.  Expecting " - Job Files" to be present.  It will be removed.
+ */
+export const CheckForTemplateDocumentSet = async (departmentName: string): Promise<boolean> => {
+    let templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates).select('Title', 'RootFolder/ServerRelativeUrl').expand('RootFolder')();
+    let parsedDepartmentName = RemoveStringFromDepartmentName(departmentName);
+
+    let output = await (await _sp.web.getFolderByServerRelativePath(`${templateLibrary.RootFolder.ServerRelativeUrl}/${parsedDepartmentName}`).select('Exists')()).Exists;
+
     return output;
 };
