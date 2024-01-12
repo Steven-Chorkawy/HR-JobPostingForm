@@ -11,6 +11,7 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'JobPostingFormWebPartStrings';
 import JobPostingForm from './components/JobPostingForm';
 import { IJobPostingFormProps } from './components/IJobPostingFormProps';
+import { setSP } from '../../HelperMethods/MyHelperMethod';
 
 export interface IJobPostingFormWebPartProps {
   description: string;
@@ -37,6 +38,10 @@ export default class JobPostingFormWebPart extends BaseClientSideWebPart<IJobPos
   }
 
   protected onInit(): Promise<void> {
+    super.onInit();
+
+    setSP(this.context);
+
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;
     });
