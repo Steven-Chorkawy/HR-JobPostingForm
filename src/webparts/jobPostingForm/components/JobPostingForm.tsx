@@ -4,12 +4,13 @@ import LoadingComponent from '../../../MyComponents/LoadingComponent';
 import { IJobPostingFormState } from './IJobPostingFormState';
 import { IDepartments } from '../../../interfaces/IDepartments';
 import { GetDivisions, RemoveDuplicateDivisions } from '../../../HelperMethods/MyHelperMethod';
+import NewJobPostingForm from '../../../MyComponents/NewJobPostingForm';
 
 export default class JobPostingForm extends React.Component<IJobPostingFormProps, IJobPostingFormState> {
   constructor(props: IJobPostingFormProps) {
     super(props);
     this.state = {
-      departmentLibraries: undefined,
+      departmentLibraries: [],
       divisions: undefined,
       departments: []
     };
@@ -17,7 +18,7 @@ export default class JobPostingForm extends React.Component<IJobPostingFormProps
 
   public render(): React.ReactElement<IJobPostingFormProps> {
     return this.state.departmentLibraries && this.state.divisions ?
-      <div>hello world</div> :
+      <NewJobPostingForm {...this.props} {...this.state} /> :
       <LoadingComponent />
   }
 

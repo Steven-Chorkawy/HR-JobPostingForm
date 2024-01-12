@@ -19,18 +19,12 @@ export interface IJobPostingFormWebPartProps {
 
 export default class JobPostingFormWebPart extends BaseClientSideWebPart<IJobPostingFormWebPartProps> {
 
-  private _isDarkTheme: boolean = false;
-  private _environmentMessage: string = '';
-
   public render(): void {
     const element: React.ReactElement<IJobPostingFormProps> = React.createElement(
       JobPostingForm,
       {
         description: this.properties.description,
-        isDarkTheme: this._isDarkTheme,
-        environmentMessage: this._environmentMessage,
-        hasTeamsContext: !!this.context.sdks.microsoftTeams,
-        userDisplayName: this.context.pageContext.user.displayName
+        context: this.context
       }
     );
 
@@ -43,7 +37,6 @@ export default class JobPostingFormWebPart extends BaseClientSideWebPart<IJobPos
     setSP(this.context);
 
     return this._getEnvironmentMessage().then(message => {
-      this._environmentMessage = message;
     });
   }
 
@@ -81,7 +74,6 @@ export default class JobPostingFormWebPart extends BaseClientSideWebPart<IJobPos
       return;
     }
 
-    this._isDarkTheme = !!currentTheme.isInverted;
     const {
       semanticColors
     } = currentTheme;

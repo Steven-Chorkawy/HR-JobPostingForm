@@ -19,11 +19,8 @@ import { IFolderAddResult } from "@pnp/sp/folders";
 import { IContentTypeInfo } from "@pnp/sp/content-types";
 
 let _sp: SPFI;
-export const setSP = (context: WebPartContext | ListViewCommandSetContext | FormCustomizerContext): SPFI => {
-    if (_sp === null && context !== null) {
-        _sp = spfi().using(SPFx(context));
-    }
-    return _sp;
+export const setSP = (context: WebPartContext | ListViewCommandSetContext | FormCustomizerContext): void => {
+    _sp = spfi().using(SPFx(context));
 };
 
 export const getSP = (): SPFI => {
@@ -100,7 +97,7 @@ export const RemoveDuplicateDivisions = (departments: IDepartments[]): string[] 
  * @returns A list of template files found.
  */
 export const GetTemplateDocuments = async (): Promise<any> => {
-    const templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates)
+    const templateLibrary = await getSP().web.lists.getByTitle(MyLibraries.JobPostingTemplates)
         .select('Title', 'RootFolder/ServerRelativeUrl')
         .expand('RootFolder')();
 
