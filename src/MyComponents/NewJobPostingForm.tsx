@@ -2,9 +2,13 @@ import * as React from 'react';
 import { INewJobFormState, INewJobPostingFormProps } from '../interfaces/INewJobPostingForm';
 import { IDepartments } from '../interfaces/IDepartments';
 import { NewJobPostingFormStatus } from '../enums/NewJobFormStatus';
-import { CheckForTemplateDocumentSet, GET_INVALID_CHARACTERS, GetTemplateDocuments, RemoveStringFromDepartmentName } from '../HelperMethods/MyHelperMethod';
-import { Field, FieldWrapper, FormRenderProps } from '@progress/kendo-react-form';
-import { ComboBox, IComboBoxOption, TextField } from '@fluentui/react';
+import { CheckForExistingDocumentSet, CheckForTemplateDocumentSet, CreateDocumentSet, FormatDocumentSetPath, FormatTitle, GET_INVALID_CHARACTERS, GetTemplateDocuments, MASTER_TEMPLATE_FOLDER_NAME, RemoveStringFromDepartmentName } from '../HelperMethods/MyHelperMethod';
+import { Field, FieldWrapper, Form, FormElement, FormRenderProps } from '@progress/kendo-react-form';
+import { ComboBox, DefaultButton, FontSizes, IComboBoxOption, Link, MessageBar, MessageBarType, PrimaryButton, Stack, TextField, Toggle } from '@fluentui/react';
+import { FilePicker, IFilePickerResult } from '@pnp/spfx-controls-react';
+import { INewJobFormSubmit } from '../interfaces/INewJobFormSubmit';
+import { Card, CardBody, CardSubtitle, CardTitle } from '@progress/kendo-react-layout';
+import PackageSolutionVersion from './PackageSolutionVersion';
 
 
 export default class NewJobPostingForm extends React.Component<INewJobPostingFormProps, INewJobFormState> {
@@ -37,14 +41,6 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
         }
     }
 
-    //#region Private Methods.
-    private _getDivisions = (departments: IDepartments[], selectedDepartment: string): string[] => {
-        let output: any = [];
-        departments.filter(f => f.name === selectedDepartment).map(f => output.push(...f.divisions as any));
-        return output;
-    }
-    //#endregion
-
     /**
  * Steps defined to reset the extra template to their initial state. 
  * 
@@ -52,7 +48,7 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
  *  showExtraFilePicker: false.
  *  extraTemplateDocSetName: undefined.     * 
  */
-    private _clearExtraTemplates = (formRenderProps: FormRenderProps) => {
+    private _clearExtraTemplates = (formRenderProps: FormRenderProps): void => {
         this.setState({
             // showExtraFilePicker: false,          // No need to reset this because CheckForTemplateDocumentSet() will determine if it should be True or False.
             // extraTemplateDocSetName: undefined,  // This will also be set by CheckForTemplateDocumentSet().
@@ -63,22 +59,22 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
     }
 
     //#region Validators
-    private titleValidator = (value: any) => {
+    private titleValidator = (value: any): string => {
         if (!value)
             return "Please Enter a title.  Titles cannot contain the following characters.  \" * : < > ? / \\ | #";
         return GET_INVALID_CHARACTERS.some(v => { return value.includes(v); }) ? "Title cannot contain the following characters.  \" * : < > ? / \\ | #" : "";
     }
 
-    private departmentValidator = (value: any) => {
+    private departmentValidator = (value: any): string => {
         return value ? "" : "Please select a department.";
     }
 
-    private divisionValidator = (value: any) => {
+    private divisionValidator = (value: any): string => {
         return value ? "" : "Please select a division.";
     }
     //#endregion
 
-    private LabelTitleInput = (fieldRenderProps: any) => {
+    private LabelTitleInput = (fieldRenderProps: any): any => {
         const { validationMessage, visited, label, id, valid, ...others } = fieldRenderProps;
         const showValidationMessage = visited && validationMessage;
         return (
@@ -88,8 +84,8 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
         );
     }
 
-    private LabelComboboxInput = (fieldRenderProps: any) => {
-        const { validationMessage, visited, label, id, valid, ...others } = fieldRenderProps;
+    private LabelComboboxInput = (fieldRenderProps: any): any => {
+        const { validationMessage, visited, label, id } = fieldRenderProps;
         const showValidationMessage = visited && validationMessage;
         const options: IComboBoxOption[] = fieldRenderProps.data && fieldRenderProps.data.map((d: any) => { return { key: d, text: d }; });
         return (
@@ -107,7 +103,7 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
         );
     }
 
-    private FilerPickerInput = (fieldRenderProps: any) => {
+    private FilerPickerInput = (fieldRenderProps: any): any => {
         const { label, onSave, ...others } = fieldRenderProps;
         const FOLDER_PATH = `https://claringtonnet.sharepoint.com/sites/Careers/JobPostingTemplates/${this.state.extraTemplateDocSetName}`;
 
@@ -136,15 +132,15 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
 
     //#region Private Methods
     private _getDivisions = (departments: IDepartments[], selectedDepartment: string): string[] => {
-        let output = [];
-        departments.filter(f => f.name === selectedDepartment).map(f => output.push(...f.divisions));
+        let output: any = [];
+        departments.filter(f => f.name === selectedDepartment).map(f => output.push(...f.divisions as any));
         return output;
     }
 
     private _areDepartmentsEmpty = () => (this.props.departments && this.props.departments.length === 0) ? true : false;
     private _areDivisionsEmpty = () => (this.props.divisions && this.props.divisions.length === 0) ? true : false;
 
-    private _onSubmit = async (e): Promise<void> => {
+    private _onSubmit = async (e: any): Promise<void> => {
         try {
             e.Title = FormatTitle(e.JobTitle, e.Division);
             let checkRes = await CheckForExistingDocumentSet(e.Title, e.Department);
@@ -155,7 +151,7 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
             });
 
             if (!checkRes) {
-                CreateDocumentSet(e).then(value =>
+                CreateDocumentSet(e).then((value: any) =>
                     this.setState({ formResponse: NewJobPostingFormStatus.Success })
                 ).catch(reason => {
                     this.setState({ formResponse: NewJobPostingFormStatus.Failed });
@@ -262,7 +258,7 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
                                 defaultChecked={false}
                                 onText={"Yes."}
                                 offText={'No.'}
-                                onChanged={checked => {
+                                onChanged={(checked: any) => {
                                     this._clearExtraTemplates(formRenderProps);
                                     formRenderProps.onChange('PartTimePosition', { value: checked });
                                 }}
@@ -280,9 +276,9 @@ export default class NewJobPostingForm extends React.Component<INewJobPostingFor
                                             this.setState({ templateFiles: value });
                                         }}
                                     />
-                                    Files selected: {this.state.templateFiles.length}
+                                    Files selected: {this.state.templateFiles?.length}
                                     <ul>
-                                        {this.state.templateFiles.map(item => (
+                                        {this.state.templateFiles?.map(item => (
                                             // <li key={item.fileName}><a href={item.fileAbsoluteUrl} target="_blank" rel="noreferrer">{item.fileName}</a></li>
                                             <li key={item.fileName}>{item.fileName}</li>
                                         ))}

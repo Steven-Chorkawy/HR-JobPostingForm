@@ -14,6 +14,9 @@ import "@pnp/sp/content-types";
 import { IDepartments } from "../interfaces/IDepartments";
 import { MyLibraries } from "../enums/MyLibraries";
 import { PermissionKind } from "@pnp/sp/security";
+import { INewJobFormSubmit } from "../interfaces/INewJobFormSubmit";
+import { IFolderAddResult } from "@pnp/sp/folders";
+import { IContentTypeInfo } from "@pnp/sp/content-types";
 
 let _sp: SPFI;
 export const setSP = (context: WebPartContext | ListViewCommandSetContext | FormCustomizerContext): SPFI => {
@@ -45,7 +48,7 @@ export const DoesUserHaveAccessToLibrary = async (libraryName: string): Promise<
  */
 export const GetUsersDepartmentLibraries = async (): Promise<string[]> => {
     const libraries = Object.keys(MyLibraries).map(key => MyLibraries[key as keyof typeof MyLibraries]);
-    let output = [];
+    const output: string[] = [];
 
     for (let i = 0; i < libraries.length; i++) {
         try {
@@ -66,14 +69,14 @@ export const GetUsersDepartmentLibraries = async (): Promise<string[]> => {
  * @returns Array of division names.
  */
 export const GetDivisions = async (): Promise<IDepartments[]> => {
-    let usersDepartments = await GetUsersDepartmentLibraries();
-    let departments: IDepartments[] = [];
+    const usersDepartments = await GetUsersDepartmentLibraries();
+    const departments: IDepartments[] = [];
     for (let i = 0; i < usersDepartments.length; i++) {
         try {
-            let divisions = await _sp.web.lists.getByTitle(usersDepartments[i]).fields.getByInternalNameOrTitle('Division').select('Choices')();
+            const divisions = await _sp.web.lists.getByTitle(usersDepartments[i]).fields.getByInternalNameOrTitle('Division').select('Choices')();
             departments.push({
                 name: usersDepartments[i],
-                divisions: divisions["Choices"]
+                divisions: divisions.Choices
             });
         } catch (error) {
             // If division column doesn't exist in library then we can skip it. 
@@ -85,7 +88,7 @@ export const GetDivisions = async (): Promise<IDepartments[]> => {
 
 export const RemoveDuplicateDivisions = (departments: IDepartments[]): string[] => {
     let output = [];
-    let divisionList: any = [];
+    const divisionList: any = [];
     departments.map(d => { divisionList.push(...d.divisions as any); });
     //This filters out duplicate divisions.
     output = divisionList.filter((element: any, index: number) => { return divisionList.indexOf(element) === index; });
@@ -97,7 +100,7 @@ export const RemoveDuplicateDivisions = (departments: IDepartments[]): string[] 
  * @returns A list of template files found.
  */
 export const GetTemplateDocuments = async (): Promise<any> => {
-    let templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates)
+    const templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates)
         .select('Title', 'RootFolder/ServerRelativeUrl')
         .expand('RootFolder')();
 
@@ -108,10 +111,8 @@ export const GetTemplateDocuments = async (): Promise<any> => {
      */
     const TEMPLATE_FOLDER = `${templateLibrary.RootFolder.ServerRelativeUrl}/${MASTER_TEMPLATE_FOLDER_NAME}`;
     try {
-        let templateFolder: any = await _sp.web.getFolderByServerRelativePath(TEMPLATE_FOLDER).expand("Folders, Files")();
-        debugger;
-        let output = templateFolder.Files
-        debugger;
+        const templateFolder: any = await _sp.web.getFolderByServerRelativePath(TEMPLATE_FOLDER).expand("Folders, Files")();
+        const output = templateFolder.Files
         return output;
     } catch (error) {
         console.error(error);
@@ -120,7 +121,7 @@ export const GetTemplateDocuments = async (): Promise<any> => {
     }
 }
 
-export const RemoveStringFromDepartmentName = (departmentName: string) => {
+export const RemoveStringFromDepartmentName = (departmentName: string): string => {
     // This string is present in the name of the libraries.  Removing it is needed in some situations.
     const REMOVE_THIS_STRING = " - Job Files";
     return departmentName.replace(REMOVE_THIS_STRING, "");
@@ -131,12 +132,114 @@ export const RemoveStringFromDepartmentName = (departmentName: string) => {
  * @param departmentName Name of the document set we are looking for.  Expecting " - Job Files" to be present.  It will be removed.
  */
 export const CheckForTemplateDocumentSet = async (departmentName: string): Promise<boolean> => {
-    let templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates).select('Title', 'RootFolder/ServerRelativeUrl').expand('RootFolder')();
-    let parsedDepartmentName = RemoveStringFromDepartmentName(departmentName);
-
-    let output = await (await _sp.web.getFolderByServerRelativePath(`${templateLibrary.RootFolder.ServerRelativeUrl}/${parsedDepartmentName}`).select('Exists')()).Exists;
+    const templateLibrary = await _sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates).select('Title', 'RootFolder/ServerRelativeUrl').expand('RootFolder')();
+    const parsedDepartmentName = RemoveStringFromDepartmentName(departmentName);
+    const output = await (await _sp.web.getFolderByServerRelativePath(`${templateLibrary.RootFolder.ServerRelativeUrl}/${parsedDepartmentName}`).select('Exists')()).Exists;
 
     return output;
+};
+
+export const FormatTitle = (jobTitle: string, division: string): string => `${jobTitle} - ${division} - ${new Date().toISOString().slice(0, 10)}`;
+
+
+export const FormatDocumentSetPath = async (departmentName: string, title: string): Promise<string> => {
+    const library = await _sp.web.lists.getByTitle(departmentName).select('Title', 'RootFolder/ServerRelativeUrl').expand('RootFolder')();
+    return `${library.RootFolder.ServerRelativeUrl}/${title}`;
+};
+
+export const CheckForExistingDocumentSetByServerRelativePath = async (serverRelativePath: string): Promise<boolean> => {
+    return await (await _sp.web.getFolderByServerRelativePath(serverRelativePath).select('Exists')()).Exists;
+};
+
+
+export const CheckForExistingDocumentSet = async (title: string, departmentName: string): Promise<boolean> => {
+    const FOLDER_NAME = await FormatDocumentSetPath(departmentName, title);
+    return await CheckForExistingDocumentSetByServerRelativePath(FOLDER_NAME);
+};
+
+export const GetLibraryContentTypes = async (departmentName: string): Promise<string> => {
+    const library = await _sp.web.lists.getByTitle(departmentName);
+    const output = (await library.contentTypes()).find((f: IContentTypeInfo) => (f.Group === "Custom Content Types" || f.Group === "Job Posting Content Types") && f.StringId.includes('0x0120'))?.StringId;
+    return output ? output : "";
+};
+
+export const CreateDocumentSet = async (input: INewJobFormSubmit): Promise<void> => {
+    let newFolderResult: IFolderAddResult;
+    const FOLDER_NAME = await FormatDocumentSetPath(input.Department, input.Title);
+    let libraryDocumentSetContentTypeId;
+
+    try {
+        libraryDocumentSetContentTypeId = await GetLibraryContentTypes(input.Department);
+        if (!libraryDocumentSetContentTypeId) {
+            throw new Error("Error! Cannot get content type for library.");
+        }
+
+        // Because sp.web.folders.add overwrites existing folder I have to do a manual check.
+        if (await CheckForExistingDocumentSetByServerRelativePath(FOLDER_NAME)) {
+            throw new Error(`Error! Cannot Create new Document Set. Duplicate Name detected. "${FOLDER_NAME}"`);
+        }
+
+        newFolderResult = await _sp.web.folders.addUsingPath(FOLDER_NAME);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+
+    const newFolderProperties = await _sp.web.getFolderByServerRelativePath(newFolderResult.data.ServerRelativeUrl).listItemAllFields();
+
+    await _sp.web.lists.getByTitle(input.Department).items.getById(newFolderProperties.ID).update({
+        ContentTypeId: libraryDocumentSetContentTypeId,
+        ///HTML_x0020_File_x0020_Type: "SharePoint.DocumentSet",
+        PartTimePosition: input.PartTimePosition,
+        Division: input.Division,
+        ApprovalStatus: "New"
+    });
+
+    try {
+        // input.TemplateFiles might be undefined.  CopyTemplateDocuments will determine how it is handled.
+        await CopyTemplateDocuments(input.Department, input.Title, input.TemplateFiles);
+    }
+    catch (error) {
+        console.log('Failed to copy template documents.');
+        console.log(error);
+        throw error;
+    }
+};
+
+export const CopyTemplateDocuments = async (department: string, documentSetName: string, extraTemplateFiles?: any[]): Promise<void> => {
+    const destinationLibrary = await _sp.web.lists.getByTitle(department)
+        .select('Title', 'RootFolder/ServerRelativeUrl')
+        .expand('RootFolder')();
+
+    // let templateLibrary = await sp.web.lists.getByTitle(MyLibraries.JobPostingTemplates)
+    //     .select('Title', 'RootFolder/ServerRelativeUrl')
+    //     .expand('RootFolder')
+    //     .get();
+
+
+    // const TEMPLATE_FOLDER = `${templateLibrary.RootFolder.ServerRelativeUrl}/${MASTER_TEMPLATE_FOLDER_NAME}`;
+    // let library: any = await sp.web.getFolderByServerRelativeUrl(TEMPLATE_FOLDER).expand("Folders, Files").get();
+
+    const destinationUrl = `${destinationLibrary.RootFolder.ServerRelativeUrl}/${documentSetName}`;
+
+    const templateFiles = await GetTemplateDocuments();
+
+    templateFiles.forEach((value: any) => {
+        if (extraTemplateFiles !== undefined && value.Name.includes('Requisition')) {
+            _sp.web.getFileByServerRelativePath(value.ServerRelativeUrl).copyTo(`${destinationUrl}/${value.Name}`, false);
+
+        }
+        if (extraTemplateFiles === undefined) {
+            _sp.web.getFileByServerRelativePath(value.ServerRelativeUrl).copyTo(`${destinationUrl}/${value.Name}`, false);
+        }
+    });
+
+    // Copy over any template files the user has selected.
+    if (extraTemplateFiles) {
+        extraTemplateFiles.forEach(value => {
+            _sp.web.getFileByUrl(value.fileAbsoluteUrl).copyTo(`${destinationUrl}/${value.fileName}`, false);
+        });
+    }
 };
 
 /**
